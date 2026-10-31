@@ -1,0 +1,7 @@
+Asset: Low Poly Tree Pack
+Creator: Broken Vector
+Source: https://brokenvector.itch.io/low-poly-tree-pack
+
+The downloaded archive contains 38 COLLADA tree models and four color-sheet textures.
+Keep this source attribution with the imported assets. The public listing does not state
+a separate license; check the publisher's terms before redistributing the source files.

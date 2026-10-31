@@ -1,0 +1,32 @@
+# Unity-generated files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# IDE and generated project files
+.vs/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Optional Unity package archives exceed GitHub's 100 MB file limit
+/Assets/Holotna/Mountain/_HDRP/HDRP.unitypackage
+/Assets/Holotna/Mountain/_URP/URP.unitypackage
