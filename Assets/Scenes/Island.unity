@@ -14654,7 +14654,7 @@ Transform:
   m_GameObject: {fileID: 604979657}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.19500001, y: 0.385, z: -0.085}
+  m_LocalPosition: {x: 0.19500001, y: -0.05, z: -0.085}
   m_LocalScale: {x: 0.035, y: 1.8, z: 0.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -24838,7 +24838,7 @@ Transform:
   m_GameObject: {fileID: 984072258}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.4, y: 0.77, z: -0.085}
+  m_LocalPosition: {x: 0.4, y: 0, z: -0.085}
   m_LocalScale: {x: 0.035, y: 1.8, z: 0.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -36204,7 +36204,7 @@ Transform:
   m_GameObject: {fileID: 1477974023}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.42, y: -0.77, z: -0.085}
+  m_LocalPosition: {x: -0.42, y: -0.024, z: -0.085}
   m_LocalScale: {x: 0.035, y: 1.8, z: 0.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -38122,7 +38122,7 @@ Transform:
   m_GameObject: {fileID: 1555658242}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.21499999, y: -0.385, z: -0.085}
+  m_LocalPosition: {x: -0.21499999, y: -0.004, z: -0.085}
   m_LocalScale: {x: 0.035, y: 1.8, z: 0.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -47003,6 +47003,9 @@ MonoBehaviour:
   playerCamera: {fileID: 330585546}
   reach: 3
   doorOpenSound: {fileID: 8300000, guid: bbfd1613ffd6fe54f92dcb9aebf98ec9, type: 3}
+  doorLockedSound: {fileID: 0}
+  doorLight: {fileID: 0}
+  textHints: {fileID: 0}
   cellsRequired: 4
 --- !u!114 &1908453921
 MonoBehaviour:
@@ -47017,6 +47020,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory
   collectSound: {fileID: 8300000, guid: eba03f9f9007d3f42b367975568ae7a3, type: 3}
+  hudCharge: []
+  chargeHud: {fileID: 0}
+  meterCharge: []
+  meter: {fileID: 0}
 --- !u!4 &1909114467 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3177922678236224629, guid: 39f011fb827219343953848c73a70807, type: 3}
