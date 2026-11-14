@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class Inventory : MonoBehaviour
@@ -10,10 +11,19 @@ public class Inventory : MonoBehaviour
     [SerializeField] private Texture2D[] meterCharge;
     [SerializeField] private Renderer meter;
 
+    [Header("Matches")]
+    [SerializeField] private RawImage matchHud;
+    [SerializeField] private TextHints textHints;
+    [SerializeField, TextArea] private string needMatchesHint = "Czym by tu rozpalić ogień...";
+    [SerializeField] private float campfireRange = 2.2f;
+
     private int charge;
+    private bool haveMatches;
 
     public int Charge => charge;
     public Color ChargeIndicatorColor => GetChargeIndicatorColor(charge);
+    public RawImage MatchHud { get => matchHud; set => matchHud = value; }
+    public TextHints HintDisplay { get => textHints; set => textHints = value; }
 
     public static Color GetChargeIndicatorColor(int chargeLevel)
     {
@@ -31,6 +41,21 @@ public class Inventory : MonoBehaviour
     {
         EnsureHudSetup();
         RefreshHudTexture();
+
+        if (textHints == null)
+        {
+            GameObject hintObject = GameObject.Find("TextHintGUI");
+            if (hintObject != null)
+                textHints = hintObject.GetComponent<TextHints>();
+        }
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current == null || !Keyboard.current.fKey.wasPressedThisFrame)
+            return;
+
+        TryLightNearbyCampfire();
     }
 
     public void CellPickup()
@@ -51,6 +76,17 @@ public class Inventory : MonoBehaviour
         }
     }
 
+    public void MatchPickup()
+    {
+        haveMatches = true;
+
+        if (collectSound != null)
+            AudioSource.PlayClipAtPoint(collectSound, transform.position);
+
+        if (matchHud != null)
+            matchHud.enabled = true;
+    }
+
     public void HudOn()
     {
         if (chargeHud != null)
@@ -61,6 +97,35 @@ public class Inventory : MonoBehaviour
     {
         if (chargeHud != null)
             chargeHud.enabled = false;
+    }
+
+    private void TryLightNearbyCampfire()
+    {
+        if (!haveMatches)
+        {
+            if (textHints != null)
+                textHints.ShowHint(needMatchesHint);
+            return;
+        }
+
+        Collider[] nearby = Physics.OverlapSphere(transform.position, campfireRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        Campfire campfire = null;
+
+        foreach (Collider collider in nearby)
+        {
+            campfire = collider.GetComponentInParent<Campfire>();
+            if (campfire != null)
+                break;
+        }
+
+        if (campfire == null || campfire.IsLit)
+            return;
+
+        campfire.LightFire();
+        haveMatches = false;
+
+        if (matchHud != null)
+            matchHud.enabled = false;
     }
 
     private void EnsureHudSetup()
