@@ -21,14 +21,39 @@ internal static class IslandOutpostBuilder
     private static void Rebuild()
     {
         GameObject existing = GameObject.Find("Island Outpost");
-        if (existing != null)
+        if (existing == null)
         {
-            GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(existing);
-            if (source == null || AssetDatabase.GetAssetPath(source) != PrefabPath)
-                throw new InvalidOperationException("Refusing to replace an object that is not this generated outpost prefab.");
-            UnityEngine.Object.DestroyImmediate(existing);
+            Build();
+            return;
         }
-        Build();
+
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Stop Play mode before rebuilding the outpost.");
+            return;
+        }
+
+        Transform oldShy = existing.transform.Find("Coconut Shy");
+        if (oldShy != null)
+            UnityEngine.Object.DestroyImmediate(oldShy.gameObject);
+
+        BuildCoconutShy(existing.transform);
+
+        AudioClip doorSound = AssetDatabase.LoadAssetAtPath<AudioClip>(SoundPath);
+        if (doorSound == null)
+        {
+            Debug.LogError("Could not load the outpost door sound.");
+            return;
+        }
+
+        AttachPlayerScript(doorSound);
+        PrefabUtility.SaveAsPrefabAsset(existing, PrefabPath);
+        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Selection.activeGameObject = existing;
+        Debug.Log("Rebuilt the Coconut Shy without moving the existing Island Outpost or Player.", existing);
     }
 
     [MenuItem("Tools/Island/Build Outpost")]
@@ -55,6 +80,7 @@ internal static class IslandOutpostBuilder
 
         EnsureFolders();
         EnsureTag("playerDoor");
+        EnsureTag("coconut");
 
         Material wood = CreateMaterial("Wood", new Color(0.34f, 0.17f, 0.085f), 0.12f);
         Material lightWood = CreateMaterial("Sunbleached Wood", new Color(0.58f, 0.36f, 0.19f), 0.14f);
@@ -85,6 +111,8 @@ internal static class IslandOutpostBuilder
         BuildWalls(hut.transform, wood, lightWood, darkWood, glass, brass);
         BuildRoof(hut.transform, roof, roofRib, darkWood, lightWood);
         BuildEntry(hut.transform, lightWood, darkWood, brass, lantern, sign, roof, controller);
+
+        BuildCoconutShy(hut.transform);
 
         Animator animator = hut.GetComponent<Animator>();
         if (animator == null)
@@ -121,6 +149,14 @@ internal static class IslandOutpostBuilder
         string path = parent + "/" + folder;
         if (!AssetDatabase.IsValidFolder(path))
             AssetDatabase.CreateFolder(parent, folder);
+    }
+
+    private static Component AddRuntimeComponent(GameObject target, string typeName)
+    {
+        System.Type runtimeType = System.Type.GetType(typeName + ", Assembly-CSharp");
+        if (runtimeType == null)
+            throw new InvalidOperationException("Could not load runtime component: " + typeName);
+        return target.AddComponent(runtimeType);
     }
 
     private static Material CreateMaterial(string name, Color color, float smoothness, bool emission = false)
@@ -538,22 +574,221 @@ internal static class IslandOutpostBuilder
         hut.SetPositionAndRotation(bestPosition, Quaternion.LookRotation(toPlayer, Vector3.up));
     }
 
+    private static void BuildCoconutShy(Transform outpost)
+    {
+        Material wood = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath + "/Wood.mat");
+        Material lightWood = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath + "/Sunbleached_Wood.mat");
+        Material roof = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath + "/Deep_Teal_Roof.mat");
+        if (wood == null || lightWood == null || roof == null)
+            throw new InvalidOperationException("Could not load outpost materials for the coconut shy.");
+
+        GameObject shy = new GameObject("Coconut Shy");
+        shy.transform.SetParent(outpost, false);
+        shy.transform.localPosition = new Vector3(-5.1f, 0f, 1.1f);
+        shy.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+        CreateBox(shy.transform, "Rear Panel", new Vector3(0f, 1.7f, -1.35f),
+            new Vector3(4.1f, 3.4f, 0.16f), wood);
+        CreateBox(shy.transform, "Left Post", new Vector3(-2.05f, 1.7f, -0.55f),
+            new Vector3(0.22f, 3.4f, 1.8f), lightWood);
+        CreateBox(shy.transform, "Right Post", new Vector3(2.05f, 1.7f, -0.55f),
+            new Vector3(0.22f, 3.4f, 1.8f), lightWood);
+        CreateBox(shy.transform, "Canopy", new Vector3(0f, 3.5f, -0.55f),
+            new Vector3(4.4f, 0.24f, 2.2f), roof);
+        CreateBox(shy.transform, "Sign", new Vector3(0f, 3.05f, -0.55f),
+            new Vector3(2.8f, 0.55f, 0.12f), lightWood);
+
+        GameObject mat = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        mat.name = "Throw Mat";
+        mat.transform.SetParent(shy.transform, false);
+        mat.transform.localPosition = new Vector3(0f, 0.08f, 1.85f);
+        mat.transform.localScale = new Vector3(3.2f, 0.08f, 2.4f);
+        MeshRenderer matRenderer = mat.GetComponent<MeshRenderer>();
+        matRenderer.sharedMaterial = lightWood;
+
+        BoxCollider throwZone = mat.AddComponent<BoxCollider>();
+        throwZone.isTrigger = true;
+        throwZone.center = new Vector3(0f, 10f, 0f);
+        throwZone.size = new Vector3(1f, 20f, 1f);
+        Component trigger = AddRuntimeComponent(mat, "ThrowTrigger");
+        SerializedObject triggerSerialized = new SerializedObject(trigger);
+
+        GameObject balloonParent = new GameObject("Balloons");
+        balloonParent.transform.SetParent(shy.transform, false);
+        Component minigame = AddRuntimeComponent(balloonParent, "BalloonMinigame");
+        SerializedObject minigameSerialized = new SerializedObject(minigame);
+        minigameSerialized.FindProperty("targetHits").intValue = 10;
+        minigameSerialized.ApplyModifiedProperties();
+        triggerSerialized.FindProperty("minigame").objectReferenceValue = minigame;
+        triggerSerialized.ApplyModifiedProperties();
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+            shader = Shader.Find("Standard");
+
+        Component[] targets = new Component[9];
+        for (int row = 0; row < 3; row++)
+        for (int column = 0; column < 3; column++)
+        {
+            int index = row * 3 + column;
+            GameObject balloon = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            balloon.name = "Balloon " + (index + 1);
+            balloon.transform.SetParent(balloonParent.transform, false);
+            balloon.transform.localPosition = new Vector3((column - 1) * 0.75f, 2.15f + (2 - row) * 0.75f, -1.23f);
+            balloon.transform.localScale = Vector3.one * 0.38f;
+            balloon.SetActive(false);
+
+            Collider balloonCollider = balloon.GetComponent<Collider>();
+            balloonCollider.isTrigger = false;
+            Rigidbody balloonBody = balloon.AddComponent<Rigidbody>();
+            balloonBody.isKinematic = true;
+
+            Renderer balloonRenderer = balloon.GetComponent<Renderer>();
+            Material balloonMaterial = new Material(shader);
+            balloonMaterial.color = new Color(
+                0.35f + column * 0.25f,
+                0.25f + row * 0.22f,
+                0.72f - row * 0.16f);
+            balloonRenderer.sharedMaterial = balloonMaterial;
+
+            Component target = AddRuntimeComponent(balloon, "BalloonTarget");
+            SerializedObject targetSerialized = new SerializedObject(target);
+            targetSerialized.FindProperty("balloonIndex").intValue = index;
+            targetSerialized.FindProperty("minigame").objectReferenceValue = minigame;
+            targetSerialized.ApplyModifiedProperties();
+            targets[index] = target;
+        }
+
+        SerializedObject minigameTargets = new SerializedObject(minigame);
+        SerializedProperty balloonTargets = minigameTargets.FindProperty("balloons");
+        if (balloonTargets != null)
+        {
+            balloonTargets.arraySize = targets.Length;
+            for (int i = 0; i < targets.Length; i++)
+                balloonTargets.GetArrayElementAtIndex(i).objectReferenceValue = targets[i];
+        }
+        minigameTargets.ApplyModifiedProperties();
+
+        GameObject reward = CreateRewardModel(shy.transform);
+        reward.name = "Minigame Reward";
+        AddRuntimeComponent(reward, "RewardDisplay");
+        reward.SetActive(false);
+        reward.SetActive(false);
+    }
+
+    private static GameObject CreateRewardModel(Transform parent)
+    {
+        GameObject reward = new GameObject("Reward Battery");
+        reward.transform.SetParent(parent, false);
+        reward.transform.localPosition = new Vector3(0f, 0.75f, 1.15f);
+        reward.transform.localRotation = Quaternion.identity;
+        reward.transform.localScale = Vector3.one * 0.55f;
+
+        Material powerCase = AssetDatabase.LoadAssetAtPath<Material>("Assets/PowerCells/Materials/PowerCell_Case.mat");
+        Material powerTerminal = AssetDatabase.LoadAssetAtPath<Material>("Assets/PowerCells/Materials/PowerCell_Terminals.mat");
+        GameObject caseObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        caseObject.name = "Battery";
+        caseObject.transform.SetParent(reward.transform, false);
+        caseObject.transform.localScale = new Vector3(1.2f, 0.7f, 0.6f);
+        if (powerCase != null)
+            caseObject.GetComponent<Renderer>().sharedMaterial = powerCase;
+        UnityEngine.Object.DestroyImmediate(caseObject.GetComponent<Collider>());
+
+        for (int i = -1; i <= 1; i += 2)
+        {
+            GameObject terminal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            terminal.name = "Terminal";
+            terminal.transform.SetParent(reward.transform, false);
+            terminal.transform.localPosition = new Vector3(i * 0.33f, 0.43f, 0f);
+            terminal.transform.localScale = new Vector3(0.16f, 0.08f, 0.16f);
+            if (powerTerminal != null)
+                terminal.GetComponent<Renderer>().sharedMaterial = powerTerminal;
+            UnityEngine.Object.DestroyImmediate(terminal.GetComponent<Collider>());
+        }
+
+        return reward;
+    }
+
     private static void AttachPlayerScript(AudioClip sound)
     {
         GameObject player = GameObject.Find("Player");
         if (player == null)
             throw new InvalidOperationException("Could not find the Player object.");
 
+        Camera playerCamera = player.GetComponentInChildren<Camera>();
+        if (playerCamera == null)
+            throw new InvalidOperationException("Could not find a Camera under the Player object.");
+
+        Transform launcherTransform = playerCamera.transform.Find("Launcher");
+        if (launcherTransform == null)
+        {
+            GameObject launcher = new GameObject("Launcher");
+            launcherTransform = launcher.transform;
+            launcherTransform.SetParent(playerCamera.transform, false);
+            launcherTransform.localPosition = new Vector3(0.5f, -0.3f, 1f);
+        }
+
+        Rigidbody coconutPrefab = CreateCoconutPrefab();
+        AudioSource launcherAudio = launcherTransform.GetComponent<AudioSource>();
+        if (launcherAudio == null)
+            launcherAudio = launcherTransform.gameObject.AddComponent<AudioSource>();
+        launcherAudio.playOnAwake = false;
+
+        Component thrower = launcherTransform.GetComponent("CoconutThrower");
+        if (thrower == null)
+            thrower = AddRuntimeComponent(launcherTransform.gameObject, "CoconutThrower");
+        SerializedObject throwerSerialized = new SerializedObject(thrower);
+        throwerSerialized.FindProperty("coconutPrefab").objectReferenceValue = coconutPrefab;
+        throwerSerialized.FindProperty("throwSpeed").floatValue = 30f;
+        throwerSerialized.FindProperty("throwCooldown").floatValue = 0.25f;
+        throwerSerialized.ApplyModifiedProperties();
+
         PlayerCollisions collisions = player.GetComponent<PlayerCollisions>();
         if (collisions == null)
             collisions = player.AddComponent<PlayerCollisions>();
         SerializedObject serialized = new SerializedObject(collisions);
         serialized.FindProperty("doorOpenSound").objectReferenceValue = sound;
-        Camera playerCamera = player.GetComponentInChildren<Camera>();
-        if (playerCamera == null)
-            throw new InvalidOperationException("Could not find a Camera under the Player object.");
         serialized.FindProperty("playerCamera").objectReferenceValue = playerCamera.transform;
         serialized.ApplyModifiedProperties();
         EditorUtility.SetDirty(player);
+    }
+
+    private static Rigidbody CreateCoconutPrefab()
+    {
+        CreateFolderIfMissing("Assets", "Prefabs");
+        const string prefabPath = "Assets/Prefabs/Coconut.prefab";
+        Rigidbody existing = AssetDatabase.LoadAssetAtPath<Rigidbody>(prefabPath);
+        if (existing != null)
+            return existing;
+
+        GameObject coconut = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        coconut.name = "Coconut";
+        coconut.tag = "coconut";
+        coconut.transform.localScale = new Vector3(0.5f, 0.6f, 0.5f);
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+            shader = Shader.Find("Standard");
+        if (shader != null)
+        {
+            Material material = new Material(shader);
+            material.color = new Color(0.42f, 0.22f, 0.09f);
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", 0f);
+            coconut.GetComponent<Renderer>().sharedMaterial = material;
+        }
+
+        Rigidbody body = coconut.AddComponent<Rigidbody>();
+        body.mass = 0.35f;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
+        System.Type tidyType = System.Type.GetType("CoconutTidyObject, Assembly-CSharp");
+        if (tidyType == null)
+            throw new InvalidOperationException("Could not load CoconutTidyObject.");
+        coconut.AddComponent(tidyType);
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(coconut, prefabPath);
+        UnityEngine.Object.DestroyImmediate(coconut);
+        return prefab != null ? AssetDatabase.LoadAssetAtPath<Rigidbody>(prefabPath) : null;
     }
 }

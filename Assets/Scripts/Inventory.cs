@@ -27,7 +27,7 @@ public class Inventory : MonoBehaviour
 
     public static Color GetChargeIndicatorColor(int chargeLevel)
     {
-        switch (Mathf.Clamp(chargeLevel, 0, 4))
+        switch (Mathf.Clamp(chargeLevel, 0, 5))
         {
             case 0: return new Color(1f, 0.12f, 0.12f);
             case 1: return new Color(1f, 0.38f, 0.05f);
@@ -169,7 +169,7 @@ public class Inventory : MonoBehaviour
             return;
         }
 
-        chargeHud.texture = CreateBatteryTexture(Mathf.Clamp(charge, 0, 4));
+        chargeHud.texture = CreateBatteryTexture(Mathf.Clamp(charge, 0, 5));
     }
 
     private Texture2D CreateBatteryTexture(int level)
@@ -216,7 +216,7 @@ public class Inventory : MonoBehaviour
             }
         }
 
-        int fillWidth = Mathf.RoundToInt(((bodyW - 28) * level) / 4f);
+        int fillWidth = Mathf.RoundToInt(((bodyW - 28) * level) / 5f);
         Color fill = GetChargeIndicatorColor(level);
         for (int y = bodyY + 12; y < bodyY + bodyH - 12; y++)
         {

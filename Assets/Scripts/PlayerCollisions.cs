@@ -6,13 +6,14 @@ using TMPro;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerCollisions : MonoBehaviour
 {
+    private const int CellsRequired = 5;
+
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float reach = 3f;
     [SerializeField] private AudioClip doorOpenSound;
     [SerializeField] private AudioClip doorLockedSound;
     [SerializeField] private Light doorLight;
     [SerializeField] private TextHints textHints;
-    [SerializeField] private int cellsRequired = 4;
 
     private Animator targetedDoorAnimator;
     private AudioSource targetedDoorAudio;
@@ -68,14 +69,14 @@ public class PlayerCollisions : MonoBehaviour
         }
 
         bool open = !targetedDoorAnimator.GetBool("DoorOpen");
-        if (open && (inventory == null || inventory.Charge < cellsRequired))
+        if (open && (inventory == null || inventory.Charge < CellsRequired))
         {
             int charge = inventory == null ? 0 : inventory.Charge;
 
             if (charge == 0)
-                ShowDoorBlockedHint("DOOR LOCKED - NEED 4 POWER CELLS");
+                ShowDoorBlockedHint("DOOR LOCKED - NEED " + CellsRequired + " POWER CELLS");
             else
-                ShowDoorBlockedHint("DOOR LOCKED - NEED " + (cellsRequired - charge) + " MORE POWER CELL(S)");
+                ShowDoorBlockedHint("DOOR LOCKED - NEED " + (CellsRequired - charge) + " MORE POWER CELL(S)");
 
             if (doorLockedSound != null)
                 AudioSource.PlayClipAtPoint(doorLockedSound, hit.point);
@@ -107,7 +108,7 @@ public class PlayerCollisions : MonoBehaviour
         targetedDoorAudio.PlayOneShot(doorOpenSound);
         UpdateDoorLight();
 
-        if (inventory != null && inventory.Charge >= cellsRequired)
+        if (inventory != null && inventory.Charge >= CellsRequired)
             inventory.HudOff();
     }
 
@@ -260,6 +261,6 @@ public class PlayerCollisions : MonoBehaviour
 
         string action = targetedDoorAnimator.GetBool("DoorOpen") ? "CLOSE DOOR" : "OPEN DOOR";
         GUI.Label(new Rect(prompt.x + 44f, prompt.y + 5f, 168f, 32f),
-            action + " (" + (inventory == null ? 0 : inventory.Charge) + "/" + cellsRequired + ")");
+            action + " (" + (inventory == null ? 0 : inventory.Charge) + "/" + CellsRequired + ")");
     }
 }

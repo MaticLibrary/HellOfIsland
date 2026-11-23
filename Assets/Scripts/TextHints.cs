@@ -8,6 +8,7 @@ public class TextHints : MonoBehaviour
 
     private TextMeshProUGUI hintText;
     private float timer;
+    private bool persistent;
 
     private void Awake()
     {
@@ -20,6 +21,9 @@ public class TextHints : MonoBehaviour
         if (!hintText.enabled)
             return;
 
+        if (persistent)
+            return;
+
         timer += Time.deltaTime;
         if (timer >= displayTime)
         {
@@ -30,8 +34,24 @@ public class TextHints : MonoBehaviour
 
     public void ShowHint(string message)
     {
+        persistent = false;
         hintText.text = message;
         hintText.enabled = true;
+        timer = 0f;
+    }
+
+    public void ShowPersistentHint(string message)
+    {
+        persistent = true;
+        hintText.text = message;
+        hintText.enabled = true;
+        timer = 0f;
+    }
+
+    public void HideHint()
+    {
+        persistent = false;
+        hintText.enabled = false;
         timer = 0f;
     }
 }

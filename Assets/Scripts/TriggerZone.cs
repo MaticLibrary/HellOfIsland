@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class TriggerZone : MonoBehaviour
 {
-    [SerializeField] private int cellsRequired = 4;
+    private const int CellsRequired = 5;
     [SerializeField] private Animator doorAnimator;
     [SerializeField] private AudioSource doorAudio;
     [SerializeField] private AudioClip doorOpenSound;
@@ -10,7 +10,7 @@ public class TriggerZone : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player") || !other.TryGetComponent(out Inventory inventory)
-            || inventory.Charge < cellsRequired)
+            || inventory.Charge < CellsRequired)
             return;
 
         if (doorAnimator == null)
